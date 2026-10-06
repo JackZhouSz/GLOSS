@@ -23,6 +23,7 @@
 <div align="center">
     <img src="assets/teaser.png" alt="One shape with a library of reference patches, and the same dragon textured two different ways from those references." width="100%">
 </div>
+<p align="center"><sub>Dragon model by C.J. Goldman, licensed under <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>.</sub></p>
 
 ---
 
@@ -51,7 +52,7 @@ bash scripts/download_example_data.sh # example data and checkpoints into ./data
 
 The example data covers three meshes (croissant, cabbage, dragon_head), each with 50 reference views, their cameras, and 4096 px partial textures, plus a per-mesh checkpoint and a Blender demo session.
 
-Needs Linux, conda, and an NVIDIA GPU with CUDA 11.8 drivers. Details: [docs/setup.md](docs/setup.md).
+Needs Linux, conda, and an NVIDIA GPU with CUDA 12.4 drivers. Details: [docs/setup.md](docs/setup.md).
 
 ### 2. Blender Plugin Setup
 
