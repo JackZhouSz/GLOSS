@@ -26,7 +26,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from tornado.concurrent import run_on_executor
 
-from gloss_interactive.kaolin_tmp_io import *
 from gloss_interactive.brush import *
 from gloss_interactive.protocol import (
     DTYPE_FLOAT32,
@@ -44,6 +43,7 @@ from gloss_interactive.protocol import (
 )
 from gloss_interactive.utils import reclaim_cuda_memory, backproject, composite_inpaint, select_cameras_for_faces
 from gloss_interactive.session import PaintSession, GlossSession
+from gloss_interactive.transport import decode_pixels, encode_pixels, from_binary, send_large_image, to_binary
 from gloss.utils.paths import get_session_dir
 
 logger = logging.getLogger(__name__)

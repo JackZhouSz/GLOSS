@@ -37,16 +37,44 @@ git submodule update --init "${submodules[@]}"
 bash thirdparty/apply_patches.sh
 
 # --- gloss env ----------------------------------------------------------------
-# Tested with python 3.9, torch 2.1.1 + CUDA 11.8, kaolin 0.17.0.
-create_env "${GLOSS_ENV}" 3.9
-pip_in "${GLOSS_ENV}" torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cu118
-pip_in "${GLOSS_ENV}" kaolin==0.17.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.1.1_cu118.html
+# Tested with python 3.10, torch 2.6.0 + CUDA 12.4, kaolin built from the web_framework_prerelease branch.
+create_env "${GLOSS_ENV}" 3.10  # kaolin.visualize uses PEP 604 unions at import time
+pip_in "${GLOSS_ENV}" torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
 pip_in "${GLOSS_ENV}" -r requirements.txt
+
+# Kaolin is built from source: gloss_interactive uses its kaolin.visualize.web.io wire format,
+# which is not in a released wheel yet. Building needs nvcc (12.x, matching torch) and Node.js >= 25.
+KAOLIN_SRC="${KAOLIN_SRC:-${GLOSS_REPO_ROOT}/thirdparty/kaolin}"
+KAOLIN_BRANCH=web_framework_prerelease
+KAOLIN_COMMIT=69c4c19af7608bf27898f878a394ba937227b975
+if ! in_env "${GLOSS_ENV}" python -c "import kaolin.visualize.web.io" >/dev/null 2>&1; then
+    if [[ ! -d "${KAOLIN_SRC}/.git" ]]; then
+        log "cloning kaolin (${KAOLIN_BRANCH}) into ${KAOLIN_SRC}"
+        git clone --branch "${KAOLIN_BRANCH}" https://github.com/NVIDIAGameWorks/kaolin "${KAOLIN_SRC}"
+    fi
+    git -C "${KAOLIN_SRC}" checkout -q "${KAOLIN_COMMIT}"
+    if ! in_env "${GLOSS_ENV}" bash -c 'node -e "process.exit(+process.versions.node.split(\".\")[0] < 25)"' >/dev/null 2>&1; then
+        log "installing Node.js >= 25 into '${GLOSS_ENV}'"
+        conda install -y -q -n "${GLOSS_ENV}" -c conda-forge "nodejs>=25"
+    fi
+    if ! in_env "${GLOSS_ENV}" bash -c 'command -v nvcc' >/dev/null 2>&1; then
+        log "nvcc not found, installing the CUDA 12.4 toolkit into '${GLOSS_ENV}'"
+        conda install -y -q -n "${GLOSS_ENV}" -c nvidia/label/cuda-12.4.1 cuda-toolkit
+    fi
+    log "building kaolin from ${KAOLIN_SRC} (this compiles CUDA kernels and takes a while)"
+    (cd "${KAOLIN_SRC}" \
+        && in_env "${GLOSS_ENV}" npm install \
+        && pip_in "${GLOSS_ENV}" ninja \
+        && pip_in "${GLOSS_ENV}" "numpy<2" -r tools/viz_requirements.txt -r tools/requirements.txt -r tools/build_requirements.txt \
+        && in_env "${GLOSS_ENV}" python -m pip uninstall -y -q Cython \
+        && FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-7.0;7.5;8.0;8.6;8.9;9.0+PTX}" \
+           pip_in "${GLOSS_ENV}" -e . --no-build-isolation)
+fi
 pip_in "${GLOSS_ENV}" -e .
 
 log "checking the gloss env"
 in_env "${GLOSS_ENV}" python - <<'PY'
-import torch, kaolin, kaolin.render.easy_render, diffusers
+import torch, kaolin, kaolin.render.easy_render, kaolin.visualize.web.io, diffusers
 import gloss, gloss.inpaint.models, gloss.utils.paths, gloss_interactive.server
 print(f"torch {torch.__version__} (cuda available: {torch.cuda.is_available()}), "
       f"kaolin {kaolin.__version__}, diffusers {diffusers.__version__}")

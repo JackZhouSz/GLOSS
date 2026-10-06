@@ -25,3 +25,6 @@ tests/**/output/
 *.safetensors
 *.onnx
 .env
+
+# kaolin source checkout built by scripts/setup_env.sh
+/thirdparty/kaolin/

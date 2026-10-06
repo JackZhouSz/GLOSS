@@ -8,13 +8,17 @@ bash scripts/download_example_data.sh [--skip-checkpoints]
 ## Requirements
 
 - Linux with an NVIDIA GPU. Tested on NVIDIA L40 (48 GB).
-- NVIDIA drivers that support CUDA 11.8 (and 12.1 for `--datagen`).
+- NVIDIA drivers that support CUDA 12.4.
+- Kaolin is compiled from source, so the first run needs `nvcc` 12.x (installed into the env from conda if missing) and Node.js >= 25 (installed from conda-forge if missing). Run it on a GPU node: the build is CPU-heavy, and `MAX_JOBS` caps parallel compile jobs.
 - [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or Anaconda on `PATH`, plus `git`.
 
 ## What `setup_env.sh` does
 
 1. Fetches the `thirdparty/` submodules it needs and applies the local patches (`thirdparty/apply_patches.sh`).
-2. Creates the `gloss` conda env: Python 3.9, PyTorch 2.1.1 with CUDA 11.8, [Kaolin](https://github.com/NVIDIAGameWorks/kaolin) 0.17.0 from NVIDIA's prebuilt wheels, `requirements.txt`, and this repo in editable mode.
+2. Creates the `gloss` conda env: Python 3.10, PyTorch 2.6.0 with CUDA 12.4, `requirements.txt`, [Kaolin](https://github.com/NVIDIAGameWorks/kaolin) built from source at a pinned commit of the `web_framework_prerelease` branch (cloned to `thirdparty/kaolin`, or `KAOLIN_SRC`), and this repo in editable mode. The interactive backend uses Kaolin's `kaolin.visualize.web.io` for its websocket wire format.
+
+   > **Note:** building Kaolin from source is temporary. `kaolin.visualize.web.io` has not been released in a prebuilt Kaolin wheel yet. Once NVIDIA publishes a wheel that includes it, `setup_env.sh` will switch back to installing that wheel, and this page will be updated with the announcement.
+
 3. With `--datagen`, also creates:
    - `diff-render` (Python 3.10, PyTorch 2.4.1) for intrinsic decomposition, and downloads the diffusion-renderer inverse model.
    - `invsr` (Python 3.10, PyTorch 2.4.0, xformers) for super-resolution.
